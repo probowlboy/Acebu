@@ -1,0 +1,189 @@
+/**
+ * Medical Dashboard Styles
+ * Clean, modern healthcare UI with soft colors and smooth transitions
+ */
+
+/* Healthcare Color Palette */
+:root {
+    --teal-primary: #14b8a6;
+    --teal-light: #5eead4;
+    --teal-dark: #0d9488;
+    --green-primary: #10b981;
+    --green-light: #6ee7b7;
+    --red-primary: #ef4444;
+    --red-light: #fca5a5;
+    --orange-primary: #f97316;
+    --gray-bg: #f8fafc;
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Smooth transitions */
+* {
+    transition: opacity 120ms ease-out, transform 120ms ease-out, background-color 120ms ease-out;
+}
+
+/* Medical Card Component */
+.medical-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    padding: 24px;
+    transition: all 120ms ease-out;
+}
+
+.medical-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    height: 280px;
+    width: 100%;
+    min-height: 280px;
+}
+
+/* Request Card */
+.request-card {
+    border-left: 4px solid;
+    border-radius: 12px;
+    padding: 20px;
+    background: white;
+    box-shadow: var(--card-shadow);
+    transition: all 120ms ease-out;
+}
+
+.request-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateX(4px);
+}
+
+.request-card.emergency {
+    border-left-color: var(--red-primary);
+}
+
+.request-card.consultation {
+    border-left-color: var(--teal-primary);
+}
+
+/* Calendar */
+.calendar-day {
+    transition: all 120ms ease-out;
+    cursor: pointer;
+}
+
+.calendar-day:hover {
+    background-color: #f0f9ff;
+}
+
+.calendar-day.selected {
+    background-color: var(--red-light);
+    color: var(--red-primary);
+    font-weight: 600;
+}
+
+/* Schedule Block */
+.schedule-block {
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    transition: all 120ms ease-out;
+}
+
+.schedule-block.patient {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.schedule-block.call {
+    background-color: #fed7aa;
+    color: #9a3412;
+}
+
+.schedule-block.meeting {
+    background-color: #ccfbf1;
+    color: #134e4a;
+}
+
+.schedule-block.event {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+/* Sidebar */
+.medical-sidebar {
+    background: white;
+    border-right: 1px solid #e5e7eb;
+    transition: all 120ms ease-out;
+}
+
+.sidebar-item {
+    transition: all 120ms ease-out;
+    border-radius: 12px;
+}
+
+.sidebar-item.active {
+    background: linear-gradient(90deg, #f0fdfa 0%, #ecfeff 100%);
+    color: var(--teal-dark);
+    border-left: 4px solid var(--teal-primary);
+}
+
+.sidebar-item:hover:not(.active) {
+    background: #f8fafc;
+}
+
+/* Header Search */
+.search-input {
+    transition: all 120ms ease-out;
+    border-radius: 12px;
+}
+
+.search-input:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: var(--teal-primary);
+}
+
+/* Stat Card */
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+    transition: all 120ms ease-out;
+}
+
+.stat-card:hover {
+    box-shadow: var(--card-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Prevent white flash */
+body {
+    background-color: var(--gray-bg);
+}
+
+/* Smooth page transitions */
+.page-transition {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 120ms ease-out, transform 120ms ease-out;
+}
+
+.page-transition.entering {
+    opacity: 0;
+    transform: translateY(8px);
+}
+

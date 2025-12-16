@@ -1,0 +1,877 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment History - Acebu Dental</title>
+    <link rel="preload" as="style" href="http://127.0.0.1:8000/build/assets/app-DPuTpgmz.css" /><link rel="stylesheet" href="http://127.0.0.1:8000/build/assets/app-DPuTpgmz.css" data-navigate-track="reload" />
+<script>
+     window.addEventListener('load', () => window.setTimeout(() => {
+        const makeLink = (asset) => {
+            const link = document.createElement('link')
+
+            Object.keys(asset).forEach((attribute) => {
+                link.setAttribute(attribute, asset[attribute])
+            })
+
+            return link
+        }
+
+        const loadNext = (assets, count) => window.setTimeout(() => {
+            if (count > assets.length) {
+                count = assets.length
+
+                if (count === 0) {
+                    return
+                }
+            }
+
+            const fragment = new DocumentFragment
+
+            while (count > 0) {
+                const link = makeLink(assets.shift())
+                fragment.append(link)
+                count--
+
+                if (assets.length) {
+                    link.onload = () => loadNext(assets, 1)
+                    link.onerror = () => loadNext(assets, 1)
+                }
+            }
+
+            document.head.append(fragment)
+        })
+
+        loadNext([], 3)
+    }))
+</script>    <script defer src="http://127.0.0.1:8000/libs/alpine.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
+    <!-- Chart.js for data visualization -->
+    <script src="http://127.0.0.1:8000/libs/chart.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="http://127.0.0.1:8000/libs/lucide.min.js"></script>
+    <!-- API Utils for optimized requests -->
+    <script src="http://127.0.0.1:8000/js/api-utils.js"></script>
+    <!-- Medical Dashboard Styles -->
+    <link rel="stylesheet" href="http://127.0.0.1:8000/css/medical-dashboard.css">
+    </head>
+<body class="antialiased"
+      x-data="{
+          isAdmin: false,
+          init() {
+              // Check localStorage to determine user role
+              const adminStatus = localStorage.getItem('isAdmin');
+              this.isAdmin = adminStatus === 'true';
+              
+              // Redirect if no authentication
+              const token = localStorage.getItem('token');
+              if (!token) {
+                  window.location.href = 'http://127.0.0.1:8000';
+                  return;
+              }
+              
+              // Redirect to correct dashboard if on wrong one
+              const currentPath = window.location.pathname;
+              if (this.isAdmin && !currentPath.includes('/admin/')) {
+                  window.location.href = '/admin/admindashboard';
+              } else if (!this.isAdmin && !currentPath.includes('/patient/')) {
+                  window.location.href = '/patient/patientdashboard';
+              }
+          }
+      }">
+    <div class="h-screen flex flex-col">
+        
+        <div x-show="isAdmin" x-cloak>
+            <header class="bg-white shadow-sm h-16 border-b border-gray-200"
+    @notification-read.window="if(unreadCount>0) unreadCount = Math.max(0, unreadCount - 1)"
+    @notification-read-reverted.window="unreadCount = (unreadCount || 0) + 1"
+    x-data="{
+            profileOpen: false,
+            notificationsOpen: false,
+            unreadCount: 0,
+            async init() {
+                await this.checkUnreadNotifications();
+                setInterval(() => this.checkUnreadNotifications(), 60000);
+            },
+            async checkUnreadNotifications() {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) return;
+                    
+                    const apiUrl = 'http://127.0.0.1:8000/api/admin/notifications';
+                    const response = await window.apiUtils.fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response && response.ok) {
+                        const notifications = await response.json();
+                        const unread = notifications.filter(n => !n.is_read);
+                        this.unreadCount = unread.length;
+                    }
+                } catch (error) {
+                    console.error('Error checking notifications:', error);
+                }
+            }
+        }">
+    <div class="mx-auto px-6 h-full">
+        <div class="flex justify-between items-center h-full">
+            <!-- Left Side - Title (only show if no search) -->
+                        <div class="flex-1">
+                <span class="text-xl font-bold text-gray-900">Admin Dashboard</span>
+            </div>
+                        
+            <!-- Right Side Icons -->
+            <div class="flex items-center space-x-4">
+                <!-- Notifications -->
+                <div class="relative">
+                    <button
+                        @click="notificationsOpen = !notificationsOpen; profileOpen = false"
+                        class="p-2 rounded-full hover:bg-gray-100 relative transition-all duration-120">
+                        <i data-lucide="bell" class="h-6 w-6 text-gray-600"></i>
+                        <span x-show="unreadCount > 0" x-cloak
+                              class="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
+                            <span x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
+                        </span>
+                    </button>
+                                            <div x-show="notificationsOpen" 
+     x-cloak
+     @click.away="notificationsOpen = false"
+     x-data="{
+         notifications: [],
+         async init() {
+             await this.fetchNotifications();
+             setInterval(() => this.fetchNotifications(), 60000);
+         },
+         async fetchNotifications() {
+             try {
+                 const token = localStorage.getItem('token');
+                 if (!token) return;
+                 
+                 const response = await fetch('http://127.0.0.1:8000/api/admin/notifications', {
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Accept': 'application/json'
+                     }
+                 });
+                 
+                 if (response.ok) {
+                     const serverList = await response.json();
+                     const map = {};
+                     serverList.forEach(n => map[n.id] = n);
+                     const merged = serverList.slice();
+                     (this.notifications || []).forEach(local => {
+                         if (!map[local.id]) merged.push(local);
+                     });
+                     this.notifications = merged;
+                 }
+             } catch (error) {
+                 console.error('Error fetching notifications:', error);
+             }
+         },
+         // Optimistic mark-as-read on hover
+         async markAsReadOptimistic(notification) {
+             try {
+                 if (!notification || notification.status !== 'unread') return;
+                const prev = { status: notification.status, is_read: notification.is_read };
+                notification.status = 'read';
+                notification.is_read = true;
+                 window.dispatchEvent(new CustomEvent('notification-read', { detail: { id: notification.id } }));
+
+                 const token = localStorage.getItem('token');
+                 const resp = await fetch(`http://127.0.0.1:8000/api/admin/notifications/${notification.id}/read`, {
+                     method: 'POST',
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Accept': 'application/json'
+                     }
+                 });
+
+                if (!resp.ok) {
+                    notification.status = prev.status;
+                    notification.is_read = prev.is_read;
+                    window.dispatchEvent(new CustomEvent('notification-read-reverted', { detail: { id: notification.id } }));
+                }
+             } catch (error) {
+                 console.error('Error marking notification as read:', error);
+                try { notification.status = prev.status; notification.is_read = prev.is_read; } catch (e) {}
+                 window.dispatchEvent(new CustomEvent('notification-read-reverted', { detail: { id: notification.id } }));
+             }
+         }
+     }"
+     class="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 max-h-96 overflow-y-auto">
+    <div class="py-1">
+        <div class="px-4 py-2 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+        </div>
+        <template x-if="notifications.length === 0">
+            <div class="px-4 py-8 text-center text-gray-500">
+                <i data-lucide="bell-off" class="h-8 w-8 mx-auto mb-2 text-gray-400"></i>
+                <p class="text-sm">No notifications</p>
+            </div>
+        </template>
+        <template x-for="notification in notifications" :key="notification.id">
+              <div @mouseenter.once="markAsReadOptimistic(notification)"
+                  :class="(!(notification.is_read === true || notification.status === 'read')) ? 'bg-blue-50' : 'bg-white'"
+                 class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                                <i :data-lucide="notification.type === 'success' ? 'check-circle' : 'alert-circle'" 
+                                    class="h-5 w-5"
+                                    :class="(!(notification.is_read === true || notification.status === 'read')) ? 'text-blue-600' : 'text-gray-400'"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm font-medium text-gray-900" x-text="notification.title"></p>
+                        <p class="text-xs text-gray-500 mt-1" x-text="notification.message"></p>
+                        <p class="text-xs text-gray-400 mt-1" x-text="new Date(notification.created_at).toLocaleString()"></p>
+                    </div>
+                      <span x-show="(!(notification.is_read === true || notification.status === 'read'))"
+                          class="ml-2 h-2 w-2 bg-blue-600 rounded-full"></span>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+                                    </div>
+                
+                <!-- More Options -->
+                <div class="relative">
+                    <button
+                        @click="profileOpen = !profileOpen; notificationsOpen = false"
+                        class="p-2 rounded-full hover:bg-gray-100 transition-all duration-120">
+                        <i data-lucide="more-vertical" class="h-6 w-6 text-gray-600"></i>
+                    </button>
+                    <div x-show="profileOpen" x-cloak
+                         @click.away="profileOpen = false"
+                         x-transition:enter="transition ease-out duration-120"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-120"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="py-1">
+                            <a href="http://127.0.0.1:8000/admin/settings"
+                               class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all duration-120">
+                                <i data-lucide="settings" class="mr-3 h-5 w-5"></i>
+                                Settings
+                            </a>
+                            <a href="http://127.0.0.1:8000"
+                               onclick="localStorage.clear();"
+                               class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-all duration-120">
+                                <i data-lucide="log-out" class="mr-3 h-5 w-5"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+    lucide.createIcons();
+</script>
+
+
+        </div>
+        <div x-show="!isAdmin" x-cloak>
+            <header class="bg-white shadow-sm h-16 border-b border-gray-200"
+    @notification-read.window="if(unreadCount>0) unreadCount = Math.max(0, unreadCount - 1)"
+    @notification-read-reverted.window="unreadCount = (unreadCount || 0) + 1"
+    x-data="{
+            profileOpen: false,
+            notificationsOpen: false,
+            unreadCount: 0,
+            async init() {
+                await this.checkUnreadNotifications();
+                setInterval(() => this.checkUnreadNotifications(), 60000);
+            },
+            async checkUnreadNotifications() {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) return;
+                    
+                    const apiUrl = 'http://127.0.0.1:8000/api/patient/notifications';
+                    const response = await window.apiUtils.fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response && response.ok) {
+                        const notifications = await response.json();
+                        const unread = notifications.filter(n => !n.is_read);
+                        this.unreadCount = unread.length;
+                    }
+                } catch (error) {
+                    console.error('Error checking notifications:', error);
+                }
+            }
+        }">
+    <div class="mx-auto px-6 h-full">
+        <div class="flex justify-between items-center h-full">
+            <!-- Left Side - Title (only show if no search) -->
+                        <div class="flex-1">
+                <h1 class="text-xl lg:text-2xl font-bold text-gray-900">Patient Dashboard</h1>
+            </div>
+                        
+            <!-- Right Side Icons -->
+            <div class="flex items-center space-x-4">
+                <!-- Notifications -->
+                <div class="relative">
+                    <button
+                        @click="notificationsOpen = !notificationsOpen; profileOpen = false"
+                        class="p-2 rounded-full hover:bg-gray-100 relative transition-all duration-120">
+                        <i data-lucide="bell" class="h-6 w-6 text-gray-600"></i>
+                        <span x-show="unreadCount > 0" x-cloak
+                              class="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-semibold">
+                            <span x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
+                        </span>
+                    </button>
+                                            <div x-show="notificationsOpen" 
+     x-cloak
+     @click.away="notificationsOpen = false"
+     x-data="{
+         notifications: [],
+         async init() {
+             await this.fetchNotifications();
+             setInterval(() => this.fetchNotifications(), 60000);
+         },
+         async fetchNotifications() {
+             try {
+                 const token = localStorage.getItem('token');
+                 if (!token) return;
+                 
+                 const response = await fetch('http://127.0.0.1:8000/api/patient/notifications', {
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Accept': 'application/json'
+                     }
+                 });
+                 
+                 if (response.ok) {
+                     const serverList = await response.json();
+                     // merge server list with current notifications to avoid losing items locally
+                     const map = {};
+                     serverList.forEach(n => map[n.id] = n);
+                     const merged = serverList.slice();
+                     (this.notifications || []).forEach(local => {
+                         if (!map[local.id]) merged.push(local);
+                     });
+                     this.notifications = merged;
+                 }
+             } catch (error) {
+                 console.error('Error fetching notifications:', error);
+             }
+         },
+         // Optimistic mark-as-read triggered on hover
+         async markAsReadOptimistic(notification) {
+             try {
+                 if (!notification || notification.status !== 'unread') return;
+                // optimistic update
+                const prev = { status: notification.status, is_read: notification.is_read };
+                notification.status = 'read';
+                notification.is_read = true;
+                 // notify header to decrement unread count
+                 window.dispatchEvent(new CustomEvent('notification-read', { detail: { id: notification.id } }));
+
+                 // send request but don't refetch list (avoid removals)
+                 const token = localStorage.getItem('token');
+                 const resp = await fetch(`http://127.0.0.1:8000/api/patient/notifications/${notification.id}/read`, {
+                     method: 'POST',
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Accept': 'application/json'
+                     }
+                 });
+
+                 if (!resp.ok) {
+                     // revert on failure
+                     notification.status = prev.status;
+                     notification.is_read = prev.is_read;
+                     window.dispatchEvent(new CustomEvent('notification-read-reverted', { detail: { id: notification.id } }));
+                 }
+             } catch (error) {
+                 console.error('Error marking notification as read:', error);
+                try { notification.status = prev.status; notification.is_read = prev.is_read; } catch (e) {}
+                 window.dispatchEvent(new CustomEvent('notification-read-reverted', { detail: { id: notification.id } }));
+             }
+         }
+     }"
+     class="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 max-h-96 overflow-y-auto">
+    <div class="py-1">
+        <div class="px-4 py-2 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900">Notifications</h3>
+        </div>
+        <template x-if="notifications.length === 0">
+            <div class="px-4 py-8 text-center text-gray-500">
+                <i data-lucide="bell-off" class="h-8 w-8 mx-auto mb-2 text-gray-400"></i>
+                <p class="text-sm">No notifications</p>
+            </div>
+        </template>
+        <template x-for="notification in notifications" :key="notification.id">
+              <div @mouseenter.once="markAsReadOptimistic(notification)"
+                  :class="(!(notification.is_read === true || notification.status === 'read')) ? 'bg-blue-50' : 'bg-white'"
+                 class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                                <i :data-lucide="notification.type === 'success' ? 'check-circle' : 'alert-circle'" 
+                                    class="h-5 w-5"
+                                    :class="(!(notification.is_read === true || notification.status === 'read')) ? 'text-blue-600' : 'text-gray-400'"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm font-medium text-gray-900" x-text="notification.title"></p>
+                        <p class="text-xs text-gray-500 mt-1" x-text="notification.message"></p>
+                        <p class="text-xs text-gray-400 mt-1" x-text="new Date(notification.created_at).toLocaleString()"></p>
+                    </div>
+                      <span x-show="(!(notification.is_read === true || notification.status === 'read'))"
+                          class="ml-2 h-2 w-2 bg-blue-600 rounded-full"></span>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+                                    </div>
+                
+                <!-- More Options -->
+                <div class="relative">
+                    <button
+                        @click="profileOpen = !profileOpen; notificationsOpen = false"
+                        class="p-2 rounded-full hover:bg-gray-100 transition-all duration-120">
+                        <i data-lucide="more-vertical" class="h-6 w-6 text-gray-600"></i>
+                    </button>
+                    <div x-show="profileOpen" x-cloak
+                         @click.away="profileOpen = false"
+                         x-transition:enter="transition ease-out duration-120"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-120"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                        <div class="py-1">
+                            <a href="http://127.0.0.1:8000/patient/settings"
+                               class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all duration-120">
+                                <i data-lucide="settings" class="mr-3 h-5 w-5"></i>
+                                Settings
+                            </a>
+                            <a href="http://127.0.0.1:8000"
+                               onclick="localStorage.clear();"
+                               class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-all duration-120">
+                                <i data-lucide="log-out" class="mr-3 h-5 w-5"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+    lucide.createIcons();
+</script>
+
+
+        </div>
+
+        <div class="flex-1 flex overflow-hidden">
+            
+            <div x-show="isAdmin" x-cloak>
+                <div class="h-full w-64 medical-sidebar bg-white border-r border-gray-200">
+    <div class="flex flex-col h-full">
+        <!-- Logo Section -->
+        <div class="flex items-center justify-center h-20 border-b border-gray-200 px-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="heart-pulse" class="h-6 w-6 text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-900">Acebu Dental</h1>
+            </div>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <div class="flex-1 flex flex-col pt-6 pb-4 overflow-y-auto">
+            <div class="flex-1 px-4 space-y-2">
+                                                        <a href="/admin/admindashboard"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="layout-dashboard" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Dashboard</span>
+                    </a>
+                                                        <a href="/admin/adminappointments"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="calendar" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Appointments</span>
+                    </a>
+                                                        <a href="/admin/adminusers"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="users" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Patients</span>
+                    </a>
+                                                        <a href="/admin/adminservices"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="settings" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Manage Services</span>
+                    </a>
+                                                        <a href="/admin/adminhistory"
+                       class="sidebar-item active group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="history" 
+                           class="mr-3 h-5 w-5 text-teal-600"></i>
+                        <span class="text-teal-700 font-semibold">History</span>
+                    </a>
+                            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+            </div>
+            <div x-show="!isAdmin" x-cloak>
+                <div class="h-full w-64 medical-sidebar bg-white border-r border-gray-200">
+    <div class="flex flex-col h-full">
+        <!-- Logo Section -->
+        <div class="flex items-center justify-center h-20 border-b border-gray-200 px-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="heart-pulse" class="h-6 w-6 text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold text-gray-900">Acebu Dental</h1>
+            </div>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <div class="flex-1 flex flex-col pt-6 pb-4 overflow-y-auto">
+            <div class="flex-1 px-4 space-y-2">
+                                                        <a href="/patient/patientdashboard"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="layout-dashboard" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Dashboard</span>
+                    </a>
+                                                        <a href="/patient/patientappointment"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="calendar" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">Appointments</span>
+                    </a>
+                                                        <a href="/patient/patienthistory"
+                       class="sidebar-item  group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-120">
+                        <i data-lucide="history" 
+                           class="mr-3 h-5 w-5 text-gray-500"></i>
+                        <span class="text-gray-700">History</span>
+                    </a>
+                            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+            </div>
+            
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-6" style="transition: opacity 120ms ease-out;">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+     x-data="{
+         appointmentHistory: [],
+         completedAppointments: [],
+         cancelledAppointments: [],
+         error: null,
+         loading: true,
+         filterStatus: 'all',
+         searchQuery: '',
+         async init() {
+             // Check if user is patient and redirect
+             const isAdmin = localStorage.getItem('isAdmin') === 'true';
+             if (!isAdmin) {
+                 window.location.href = '/patient/patientdashboard';
+                 return;
+             }
+             
+             await this.fetchHistory();
+         },
+         async fetchHistory() {
+             try {
+                 const token = localStorage.getItem('token');
+                 
+                 if (!token) {
+                     window.location.href = 'http://127.0.0.1:8000/admin/login';
+                     return;
+                 }
+                 
+                 const response = await fetch('http://127.0.0.1:8000/api/admin/appointments', {
+                     headers: {
+                         'Authorization': `Bearer ${token}`,
+                         'Accept': 'application/json'
+                     },
+                     credentials: 'include'
+                 });
+                 
+                 if (!response.ok) {
+                     throw new Error('Failed to fetch appointment history');
+                 }
+                 
+                 const appointments = await response.json();
+                 
+                 // Filter completed and cancelled appointments and sort by date (newest first)
+                 this.appointmentHistory = appointments
+                     .filter(app => app.status === 'completed' || app.status === 'cancelled')
+                     .sort((a, b) => {
+                         const da = this.parseLocalISO(a.appointment_date) || new Date(0);
+                         const db = this.parseLocalISO(b.appointment_date) || new Date(0);
+                         return db - da;
+                     });
+                 
+                 this.completedAppointments = this.appointmentHistory.filter(app => app.status === 'completed');
+                 this.cancelledAppointments = this.appointmentHistory.filter(app => app.status === 'cancelled');
+                 
+                 this.loading = false;
+                 
+             } catch (error) {
+                 console.error('Error fetching history:', error);
+                 this.error = error.message;
+                 this.loading = false;
+             }
+         },
+         getFilteredHistory() {
+             let filtered = this.appointmentHistory;
+             
+             if (this.filterStatus !== 'all') {
+                 filtered = filtered.filter(app => app.status === this.filterStatus);
+             }
+             
+             if (this.searchQuery.trim()) {
+                 const query = this.searchQuery.toLowerCase();
+                 filtered = filtered.filter(app => 
+                     app.service_name?.toLowerCase().includes(query) ||
+                     app.patient?.name?.toLowerCase().includes(query) ||
+                     app.patient?.email?.toLowerCase().includes(query) ||
+                     app.description?.toLowerCase().includes(query)
+                 );
+             }
+             
+             return filtered;
+         },
+         formatDate(dateString) {
+             if (!dateString) return 'N/A';
+             const d = this.parseLocalISO(dateString);
+             if (!d) return 'N/A';
+             return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+         },
+         formatTime(dateString) {
+             if (!dateString) return 'N/A';
+             const d = this.parseLocalISO(dateString);
+             if (!d) return 'N/A';
+             return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+         },
+        parseLocalISO(dateString) {
+            if (!dateString) return null;
+            try {
+                const parts = String(dateString).split('T');
+                const [datePart, timePart] = parts;
+                const [y, m, d] = (datePart || '').split('-').map(v => parseInt(v, 10));
+                if (!y || !m || !d) return null;
+                const [hh = '0', mm = '0', ss = '0'] = (timePart || '').split(':');
+                return new Date(y, parseInt(m,10) - 1, parseInt(d,10), parseInt(hh,10), parseInt(mm,10), parseInt((ss||'0').split('.')[0],10));
+            } catch (e) {
+                console.error('parseLocalISO error', e, dateString);
+                return null;
+            }
+        },
+         getStatusColor(status) {
+             if (status === 'completed') return 'bg-green-100 text-green-800';
+             if (status === 'cancelled') return 'bg-red-100 text-red-800';
+             return 'bg-gray-100 text-gray-800';
+         }
+     }">
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900">Appointment History</h1>
+                <p class="text-gray-600">View all completed and cancelled appointments</p>
+            </div>
+            <a href="http://127.0.0.1:8000/admin/admindashboard" 
+               class="flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Error Message -->
+        <div x-show="error" x-cloak 
+             class="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline" x-text="error"></span>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-500 rounded-full p-3">
+                        <i data-lucide="check-circle" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Completed</p>
+                        <p class="text-2xl font-semibold text-gray-900" x-text="!loading ? completedAppointments.length : 0"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-500 rounded-full p-3">
+                        <i data-lucide="x-circle" class="h-6 w-6 text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Cancelled</p>
+                        <p class="text-2xl font-semibold text-gray-900" x-text="!loading ? cancelledAppointments.length : 0"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="bg-white rounded-xl shadow-sm p-4 space-y-4">
+            <!-- Search Bar -->
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i data-lucide="search" class="h-5 w-5 text-gray-400"></i>
+                </div>
+                <input type="text" 
+                       x-model="searchQuery"
+                       placeholder="Search by service, patient name, or email..."
+                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <!-- Filter Tabs -->
+            <div class="flex space-x-4 border-b border-gray-200">
+                <button @click="filterStatus = 'all'"
+                        :class="filterStatus === 'all' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-gray-900'"
+                        class="px-4 py-2 font-medium transition-colors">
+                    All (<span x-text="!loading ? appointmentHistory.length : 0"></span>)
+                </button>
+                <button @click="filterStatus = 'completed'"
+                        :class="filterStatus === 'completed' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-600 hover:text-gray-900'"
+                        class="px-4 py-2 font-medium transition-colors">
+                    Completed (<span x-text="!loading ? completedAppointments.length : 0"></span>)
+                </button>
+                <button @click="filterStatus = 'cancelled'"
+                        :class="filterStatus === 'cancelled' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-600 hover:text-gray-900'"
+                        class="px-4 py-2 font-medium transition-colors">
+                    Cancelled (<span x-text="!loading ? cancelledAppointments.length : 0"></span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div x-show="loading" x-cloak class="text-center py-12">
+            <i data-lucide="loader" class="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4"></i>
+            <p class="text-gray-600">Loading appointment history...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div x-show="!loading && getFilteredHistory().length === 0" x-cloak
+             class="bg-white rounded-xl shadow-sm p-12 text-center">
+            <i data-lucide="calendar-x" class="h-16 w-16 text-gray-400 mx-auto mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No appointment history found</h3>
+            <p class="text-gray-600" x-show="searchQuery">No appointments match your search criteria.</p>
+            <p class="text-gray-600" x-show="!searchQuery">There are no completed or cancelled appointments yet.</p>
+        </div>
+
+        <!-- Appointment History List -->
+        <div x-show="!loading && getFilteredHistory().length > 0" x-cloak class="space-y-4">
+            <template x-for="appointment in getFilteredHistory()" :key="appointment.id">
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1" x-text="appointment.service_name || 'Dental Service'"></h3>
+                                    <p class="text-sm text-gray-600" x-text="appointment.description || 'No description available'"></p>
+                                    <div class="text-sm text-gray-700 mt-2"><strong>Price:</strong> <span x-text="formatPrice(appointment.service?.price ?? appointment.price)"></span></div>
+                                </div>
+                                <span :class="getStatusColor(appointment.status) + ' px-3 py-1 rounded-full text-xs font-medium capitalize'" x-text="displayStatus(appointment.status)"></span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                                <div class="flex items-center text-gray-600">
+                                    <i data-lucide="user" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm"><strong>Patient:</strong> <span x-text="appointment.patient?.name || 'N/A'"></span></span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i data-lucide="mail" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm" x-text="appointment.patient?.email || 'N/A'"></span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i data-lucide="calendar" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm" x-text="formatDate(appointment.appointment_date)"></span>
+                                </div>
+                                <div class="flex items-center text-gray-600">
+                                    <i data-lucide="clock" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm" x-text="formatTime(appointment.appointment_date)"></span>
+                                </div>
+                                <div class="flex items-center text-gray-600" x-show="appointment.dentist_name">
+                                    <i data-lucide="user-check" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm">Dr. <span x-text="appointment.dentist_name"></span></span>
+                                </div>
+                                <div class="flex items-center text-gray-600" x-show="appointment.notes">
+                                    <i data-lucide="file-text" class="h-4 w-4 mr-2 text-gray-400"></i>
+                                    <span class="text-sm" x-text="appointment.notes"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+            </main>
+        </div>
+    </div>
+
+    <!-- Medical Dashboard JS -->
+    <script src="http://127.0.0.1:8000/js/medical-dashboard.js"></script>
+    <script>
+        lucide.createIcons();
+        // Re-initialize icons when Alpine updates
+        document.addEventListener('alpine:init', () => {
+            Alpine.effect(() => {
+                setTimeout(() => lucide.createIcons(), 100);
+            });
+        });
+    </script>
+    </body>
+</html>
+
+
